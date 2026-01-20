@@ -138,36 +138,76 @@ run_exploration_phase() {
 }
 
 #───────────────────────────────────────────────────────────────────────────────
-# FASE 3: PLANIFICACIÓN
+# FASE 3: PLANIFICACIÓN ADAPTATIVA
 #───────────────────────────────────────────────────────────────────────────────
 
 run_planning_phase() {
-    log_phase "FASE 3: PLANIFICACIÓN"
+    log_phase "FASE 3: PLANIFICACIÓN ADAPTATIVA"
 
-    local pids=()
+    #───────────────────────────────────────────────────────────────────────────
+    # Leer classification.json para determinar planners necesarios
+    #───────────────────────────────────────────────────────────────────────────
+    local classification_file="${SPEC_PATH}/context/classification.json"
+    local planners_to_run=()
 
-    # Lanzar planners en paralelo (excepto consolidator)
-    local planner_types=("architecture" "api" "database" "frontend" "testing")
+    if [[ -f "$classification_file" ]]; then
+        local task_type=$(jq -r '.task_type // "feature"' "$classification_file" 2>/dev/null || echo "feature")
+        log_info "Task type detectado: $task_type"
 
-    for planner_type in "${planner_types[@]}"; do
-        log_info "Lanzando Planner: $planner_type"
-        "${SCRIPT_DIR}/scripts/agent_launcher.sh" planner "$planner_type" "$SPEC_PATH" &
-        pids+=($!)
-    done
+        # Leer planners requeridos
+        local required_planners=$(jq -r '.recommended_planners.required // [] | .[]' "$classification_file" 2>/dev/null)
+        for planner in $required_planners; do
+            planners_to_run+=("$planner")
+            log_info "Planner requerido: $planner"
+        done
 
-    # Esperar todos los planners
-    local failed=0
-    for pid in "${pids[@]}"; do
-        if ! wait "$pid"; then
-            failed=$((failed + 1))
-        fi
-    done
-
-    if [[ $failed -gt 0 ]]; then
-        log_warn "$failed planners fallaron"
+        # Leer planners condicionales (solo si son true)
+        local conditional_planners=("architecture" "api" "database" "frontend" "testing")
+        for planner in "${conditional_planners[@]}"; do
+            local is_enabled=$(jq -r ".recommended_planners.conditional.${planner} // false" "$classification_file" 2>/dev/null || echo "false")
+            if [[ "$is_enabled" == "true" ]] && [[ ! " ${planners_to_run[*]} " =~ " ${planner} " ]]; then
+                planners_to_run+=("$planner")
+                log_info "Planner condicional habilitado: $planner"
+            fi
+        done
+    else
+        # Fallback: si no hay classification.json, ejecutar todos (comportamiento legacy)
+        log_warn "No se encontró classification.json, ejecutando todos los planners"
+        planners_to_run=("architecture" "api" "database" "frontend" "testing")
     fi
 
-    # Ejecutar consolidator (secuencial, necesita output de otros)
+    #───────────────────────────────────────────────────────────────────────────
+    # Ejecutar planners seleccionados en paralelo
+    #───────────────────────────────────────────────────────────────────────────
+    local pids=()
+
+    if [[ ${#planners_to_run[@]} -gt 0 ]]; then
+        log_info "Ejecutando ${#planners_to_run[@]} planners en paralelo"
+
+        for planner_type in "${planners_to_run[@]}"; do
+            log_info "Lanzando Planner: $planner_type"
+            "${SCRIPT_DIR}/scripts/agent_launcher.sh" planner "$planner_type" "$SPEC_PATH" &
+            pids+=($!)
+        done
+
+        # Esperar todos los planners
+        local failed=0
+        for pid in "${pids[@]}"; do
+            if ! wait "$pid"; then
+                failed=$((failed + 1))
+            fi
+        done
+
+        if [[ $failed -gt 0 ]]; then
+            log_warn "$failed planners fallaron"
+        fi
+    else
+        log_info "No hay planners específicos para este tipo de tarea"
+    fi
+
+    #───────────────────────────────────────────────────────────────────────────
+    # Ejecutar consolidator (SIEMPRE, secuencial)
+    #───────────────────────────────────────────────────────────────────────────
     log_info "Lanzando Planner Consolidator..."
     "${SCRIPT_DIR}/scripts/agent_launcher.sh" planner "consolidator" "$SPEC_PATH"
 
