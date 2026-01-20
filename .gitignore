@@ -1,0 +1,26 @@
+# Execution outputs (generated files)
+spec/*/
+
+# Keep spec folder structure
+!spec/.gitkeep
+
+# Claude Code local settings
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

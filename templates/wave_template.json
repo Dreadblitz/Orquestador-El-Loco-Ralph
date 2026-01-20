@@ -1,0 +1,15 @@
+{
+  "id": "{{WAVE_ID}}",
+  "name": "{{WAVE_NAME}}",
+  "description": "{{WAVE_DESCRIPTION}}",
+  "status": "pending",
+  "depends_on": [],
+  "tasks": [],
+  "metadata": {
+    "started_at": null,
+    "completed_at": null,
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0
+  }
+}

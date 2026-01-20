@@ -1,0 +1,44 @@
+{
+  "project": {
+    "name": "{{PROJECT_NAME}}",
+    "version": "1.0.0",
+    "spec_path": "{{SPEC_PATH}}",
+    "created": "{{CREATED_AT}}"
+  },
+  "config": {
+    "max_parallel_agents": 6,
+    "max_coder_iterations": 3,
+    "autonomy": "full",
+    "review_perspectives": ["security", "tests", "architecture"]
+  },
+  "waves": [
+    {
+      "id": 1,
+      "name": "{{WAVE_NAME}}",
+      "status": "pending",
+      "depends_on": [],
+      "tasks": []
+    }
+  ],
+  "final_review": {
+    "status": "pending",
+    "perspectives": {
+      "security": {
+        "agent": null,
+        "passed": false,
+        "issues": []
+      },
+      "tests": {
+        "agent": null,
+        "passed": false,
+        "issues": []
+      },
+      "architecture": {
+        "agent": null,
+        "passed": false,
+        "issues": []
+      }
+    }
+  },
+  "progress": []
+}

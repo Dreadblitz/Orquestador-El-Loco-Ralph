@@ -1,0 +1,26 @@
+{
+  "id": "{{TASK_ID}}",
+  "title": "{{TASK_TITLE}}",
+  "description": "{{TASK_DESCRIPTION}}",
+  "phase": "{{PHASE_ID}}",
+  "priority": 1,
+  "file_paths": [
+    "{{FILE_PATH_1}}",
+    "{{FILE_PATH_2}}"
+  ],
+  "verification": {
+    "type": "command",
+    "command": "{{VERIFICATION_COMMAND}}",
+    "expected_exit_code": 0
+  },
+  "dependencies": [],
+  "passes": false,
+  "metadata": {
+    "coder_iterations": 0,
+    "last_coder_agent": null,
+    "last_reviewer_agent": null,
+    "review_status": null,
+    "started_at": null,
+    "completed_at": null
+  }
+}
