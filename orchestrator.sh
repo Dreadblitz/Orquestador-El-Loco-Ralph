@@ -67,22 +67,59 @@ EOF
 }
 
 #───────────────────────────────────────────────────────────────────────────────
-# FASE 2: EXPLORACIÓN
+# FASE 2: EXPLORACIÓN TRANSVERSAL (2 Etapas)
 #───────────────────────────────────────────────────────────────────────────────
 
 run_exploration_phase() {
-    log_phase "FASE 2: EXPLORACIÓN"
+    log_phase "FASE 2: EXPLORACIÓN TRANSVERSAL"
+
+    #───────────────────────────────────────────────────────────────────────────
+    # ETAPA 1: Clasificación (secuencial - necesitamos el resultado)
+    #───────────────────────────────────────────────────────────────────────────
+    log_info "Etapa 1: Clasificación del contexto"
+    "${SCRIPT_DIR}/scripts/agent_launcher.sh" explorer "classifier" "$SPEC_PATH" "$PROJECT_PATH"
+
+    # Leer resultado de clasificación
+    local has_code="false"
+    local classification_file="${SPEC_PATH}/context/classification.json"
+
+    if [[ -f "$classification_file" ]]; then
+        has_code=$(jq -r '.has_code // false' "$classification_file" 2>/dev/null || echo "false")
+        local context_type=$(jq -r '.context_type // "unknown"' "$classification_file" 2>/dev/null || echo "unknown")
+        log_info "Contexto detectado: $context_type (has_code: $has_code)"
+    else
+        log_warn "No se pudo leer classification.json, asumiendo proyecto con código"
+        has_code="true"
+    fi
+
+    #───────────────────────────────────────────────────────────────────────────
+    # ETAPA 2: Exploración Adaptativa (paralelo)
+    #───────────────────────────────────────────────────────────────────────────
+    log_info "Etapa 2: Exploración adaptativa"
 
     local pids=()
 
-    # Lanzar explorers en paralelo
-    local explorer_types=("structure" "tech" "patterns" "tests" "deps")
+    # Explorers que SIEMPRE se ejecutan (transversales)
+    local core_explorers=("task" "domain" "constraints")
 
-    for explorer_type in "${explorer_types[@]}"; do
+    for explorer_type in "${core_explorers[@]}"; do
         log_info "Lanzando Explorer: $explorer_type"
         "${SCRIPT_DIR}/scripts/agent_launcher.sh" explorer "$explorer_type" "$SPEC_PATH" "$PROJECT_PATH" &
         pids+=($!)
     done
+
+    # Explorers que solo se ejecutan SI HAY CÓDIGO
+    if [[ "$has_code" == "true" ]]; then
+        local code_explorers=("codebase" "stack")
+
+        for explorer_type in "${code_explorers[@]}"; do
+            log_info "Lanzando Explorer (código): $explorer_type"
+            "${SCRIPT_DIR}/scripts/agent_launcher.sh" explorer "$explorer_type" "$SPEC_PATH" "$PROJECT_PATH" &
+            pids+=($!)
+        done
+    else
+        log_info "Sin código existente - saltando explorers de codebase/stack"
+    fi
 
     # Esperar todos los explorers
     local failed=0

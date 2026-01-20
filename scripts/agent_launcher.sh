@@ -63,19 +63,87 @@ Guarda tu output en: ${output_file}
 }
 
 launch_explorer_agent() {
-    local explorer_type=$1   # structure, tech, patterns, tests, deps
+    local explorer_type=$1   # classifier, task, domain, constraints, codebase, stack
     local spec_path=$2
     local project_path=$3
 
     local agent_prompt="${SCRIPT_DIR}/../agents/explorer_${explorer_type}.md"
-    local output_file="${spec_path}/context/${explorer_type}.md"
+    local output_file=""
+    local extra_context=""
 
-    ensure_dir "$(dirname "$output_file")"
+    ensure_dir "${spec_path}/context"
 
-    local extra_context="
+    # Determinar output file y contexto según tipo de explorer
+    case "$explorer_type" in
+        classifier)
+            output_file="${spec_path}/context/classification.json"
+            extra_context="
+Proyecto a analizar: ${project_path}
+Input del usuario: ${spec_path}/input.md
+
+IMPORTANTE: Este es un análisis RÁPIDO de clasificación.
+Solo necesitas determinar el tipo de contexto y tarea.
+Output JSON en: ${output_file}
+"
+            ;;
+        task)
+            output_file="${spec_path}/context/task_analysis.md"
+            extra_context="
+Input del usuario: ${spec_path}/input.md
+Clasificación: ${spec_path}/context/classification.json
+
+Analiza profundamente la tarea solicitada.
+Output en: ${output_file}
+"
+            ;;
+        domain)
+            output_file="${spec_path}/context/domain_analysis.md"
+            extra_context="
+Input del usuario: ${spec_path}/input.md
+Proyecto: ${project_path}
+
+Analiza el dominio del problema.
+Output en: ${output_file}
+"
+            ;;
+        constraints)
+            output_file="${spec_path}/context/constraints.md"
+            extra_context="
+Input del usuario: ${spec_path}/input.md
+Proyecto: ${project_path}
+Clasificación: ${spec_path}/context/classification.json
+
+Identifica todas las limitaciones y requisitos no funcionales.
+Output en: ${output_file}
+"
+            ;;
+        codebase)
+            output_file="${spec_path}/context/codebase_analysis.md"
+            extra_context="
+Proyecto a analizar: ${project_path}
+
+Analiza la estructura, arquitectura y patrones del código existente.
+Output en: ${output_file}
+"
+            ;;
+        stack)
+            output_file="${spec_path}/context/stack_analysis.md"
+            extra_context="
+Proyecto a analizar: ${project_path}
+
+Analiza tecnologías, dependencias y configuraciones.
+Output en: ${output_file}
+"
+            ;;
+        *)
+            # Fallback para explorers legacy o futuros
+            output_file="${spec_path}/context/${explorer_type}.md"
+            extra_context="
 Proyecto a explorar: ${project_path}
 Tipo de exploración: ${explorer_type}
 "
+            ;;
+    esac
 
     launch_agent "explorer_${explorer_type}" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
 }
@@ -243,7 +311,7 @@ show_help() {
     echo "  final <type> <spec_path>                    - Launch final reviewer"
     echo "  browser <spec_path> <test_cases>            - Launch browser tester"
     echo ""
-    echo "Explorer types: structure, tech, patterns, tests, deps"
+    echo "Explorer types: classifier, task, domain, constraints, codebase, stack"
     echo "Planner types: architecture, api, database, frontend, testing, consolidator"
     echo "Final review types: security, tests, architecture"
 }
