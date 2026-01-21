@@ -259,6 +259,7 @@ El PRD debe tener la siguiente estructura:
           \"id\": \"W1T1\",
           \"title\": \"Task title\",
           \"description\": \"Detailed description\",
+          \"type\": \"code\",
           \"file_paths\": [\"expected/files/to/modify.py\"],
           \"verification\": \"command or criteria to verify\",
           \"passes\": false
@@ -283,6 +284,28 @@ El PRD debe tener la siguiente estructura:
 2. Máximo 6 tareas por wave (para paralelismo)
 3. Las waves deben ejecutarse en orden de sus IDs
 4. depends_on contiene IDs de waves que deben completarse antes
+
+## Task Types (campo type)
+
+Cada tarea DEBE tener un campo 'type' que determina cómo el Executor la procesará.
+
+| Valor | Uso |
+|-------|-----|
+| code | Implementación de código (models, services, endpoints, components) |
+| testing | Creación de tests (unit, integration, E2E) |
+| documentation | Documentación (README, API docs, docstrings) |
+| configuration | Configuración (.env, .yaml, .json, pyproject.toml) |
+| research | Investigación (spikes, análisis, POC) - NO hace commit |
+| refactoring | Refactorización (cleanup, optimización) |
+| general | Tareas que no encajan en otras categorías |
+
+**Reglas de inferencia si Type no está explícito en el plan:**
+- Archivos .py, .ts, .tsx, .js → code
+- Archivos en tests/ → testing
+- Archivos .md, .txt, .rst → documentation
+- Archivos .json, .yaml, .env, .toml → configuration
+- Título contiene 'refactor' o 'cleanup' → refactoring
+- Título contiene 'research', 'spike', 'investigate' → research
 
 ## Output
 

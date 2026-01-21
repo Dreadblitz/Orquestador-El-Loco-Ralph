@@ -233,8 +233,27 @@ launch_final_reviewer() {
 
     local extra_context="
 ## Revisión Final: ${review_type}
-Revisar todo el proyecto desde la perspectiva de ${review_type}
-Output: ${output_file}
+
+### Contexto Disponible
+- **Input original**: ${spec_path}/input.md
+- **Exploración (Fase 2)**: ${spec_path}/context/
+  - classification.json (tipo de tarea)
+  - task_analysis.md, domain_analysis.md, constraints.md
+  - codebase_analysis.md, stack_analysis.md (si aplica)
+- **Planificación (Fase 3)**: ${spec_path}/plan/
+  - IMPLEMENTATION_PLAN.md (plan consolidado)
+  - architecture.md, api_contracts.md, etc. (si existen)
+- **Ejecución (Fase 4)**: ${spec_path}/communication/
+  - executor_*_output.json (resultados de tareas)
+  - validator_*_feedback.json (feedback de validación)
+- **PRD**: ${spec_path}/prd.json (estado de waves y tareas)
+
+### Tu Tarea
+Revisar TODO el proyecto desde la perspectiva de **${review_type}**.
+Consulta los archivos de contexto para entender qué se implementó.
+
+### Output
+Genera reporte en: ${output_file}
 "
 
     launch_agent "${review_type}_reviewer" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"

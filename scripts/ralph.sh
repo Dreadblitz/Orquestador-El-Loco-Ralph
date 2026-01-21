@@ -36,8 +36,8 @@ execute_wave() {
         return 1
     fi
 
-    # Obtener tareas de la wave
-    local tasks=$(jq -r ".waves[] | select(.id == $wave_id) | .tasks[]" "$PRD_FILE" 2>/dev/null)
+    # Obtener IDs de tareas de la wave
+    local tasks=$(jq -r ".waves[] | select(.id == $wave_id) | .tasks[].id" "$PRD_FILE" 2>/dev/null)
 
     if [[ -z "$tasks" ]]; then
         log_warn "Wave $wave_id no tiene tareas"
@@ -90,7 +90,7 @@ execute_wave() {
     done
 
     # Verificar si todas las tareas de la wave están completadas
-    local pending=$(jq "[.waves[] | select(.id == $wave_id) | .tasks[] as \$t | .waves[].tasks[] | select(.id == \$t and .passes == false)] | length" "$PRD_FILE" 2>/dev/null || echo "0")
+    local pending=$(jq "[.waves[] | select(.id == $wave_id) | .tasks[] | select(.passes == false)] | length" "$PRD_FILE" 2>/dev/null || echo "0")
 
     if [[ "$pending" == "0" ]] || [[ -z "$pending" ]]; then
         set_wave_status "$PRD_FILE" "$wave_id" "completed"

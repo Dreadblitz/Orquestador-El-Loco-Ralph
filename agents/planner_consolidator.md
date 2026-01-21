@@ -35,6 +35,7 @@ From each plan file, extract:
 - Files to create/modify
 - Verification commands
 - Dependencies on other tasks
+- Executor type (for Phase 4 execution)
 
 ### 2. Dependency Mapping
 
@@ -76,12 +77,12 @@ Save to `plan/IMPLEMENTATION_PLAN.md`:
 
 ## Task Registry
 
-| ID | Task | Files | Wave | Dependencies | Verification |
-|----|------|-------|------|--------------|--------------|
-| T1 | [Description] | [files] | 1 | - | [command] |
-| T2 | [Description] | [files] | 1 | - | [command] |
-| T3 | [Description] | [files] | 2 | T1 | [command] |
-| T4 | [Description] | [files] | 2 | T1, T2 | [command] |
+| ID | Task | Type | Files | Wave | Dependencies | Verification |
+|----|------|------|-------|------|--------------|--------------|
+| T1 | [Description] | code | [files] | 1 | - | [command] |
+| T2 | [Description] | code | [files] | 1 | - | [command] |
+| T3 | [Description] | testing | [files] | 2 | T1 | [command] |
+| T4 | [Description] | documentation | [files] | 2 | T1, T2 | [command] |
 
 ## Dependency Graph
 
@@ -114,10 +115,10 @@ Wave 3 (parallel):
 **Dependencies**: None
 **Parallel Tasks**: Up to 6
 
-| ID | Task | Files | Verification |
-|----|------|-------|--------------|
-| T1 | Create [model] | `src/models/[model].py` | `python -c "from src.models import [Model]"` |
-| T2 | Create [repo] | `src/repositories/[repo].py` | `pytest tests/unit/test_[repo].py` |
+| ID | Task | Type | Files | Verification |
+|----|------|------|-------|--------------|
+| T1 | Create [model] | code | `src/models/[model].py` | `python -c "from src.models import [Model]"` |
+| T2 | Create [repo] | code | `src/repositories/[repo].py` | `pytest tests/unit/test_[repo].py` |
 
 **Completion Criteria**: All tasks pass verification
 
@@ -125,10 +126,10 @@ Wave 3 (parallel):
 **Dependencies**: Wave 1
 **Parallel Tasks**: Up to 6
 
-| ID | Task | Files | Verification |
-|----|------|-------|--------------|
-| T3 | Create [service] | `src/services/[service].py` | `pytest tests/unit/test_[service].py` |
-| T4 | Create [endpoint] | `src/routes/[route].py` | `pytest tests/integration/test_[route].py` |
+| ID | Task | Type | Files | Verification |
+|----|------|------|-------|--------------|
+| T3 | Create [service] | code | `src/services/[service].py` | `pytest tests/unit/test_[service].py` |
+| T4 | Create [endpoint] | code | `src/routes/[route].py` | `pytest tests/integration/test_[route].py` |
 
 **Completion Criteria**: All tasks pass verification
 
@@ -140,7 +141,7 @@ Wave 3 (parallel):
 ### T1: [Task Title]
 
 **Wave**: 1
-**Type**: [Model/Service/Endpoint/Component/Test]
+**Type**: [code/testing/documentation/configuration/research/refactoring/general]
 **Priority**: [High/Medium/Low]
 
 **Description**:
@@ -261,6 +262,32 @@ Wave 5: Integration, E2E Tests
 ```
 Wave 1: Fix + Test
 ```
+
+## Task Type Reference
+
+The `Type` field determines how Phase 4 (Executor) will handle the task.
+
+| Type | Use For | Executor Behavior |
+|------|---------|-------------------|
+| `code` | Models, services, endpoints, components, repositories | Implement + test + commit |
+| `testing` | Unit tests, integration tests, E2E tests | Design cases + implement + verify |
+| `documentation` | README, API docs, docstrings, comments | Create/update docs + verify links |
+| `configuration` | .env, config files, CI/CD, Docker, pyproject.toml | Modify config + validate syntax |
+| `research` | Investigation, spikes, analysis, POC | Document findings, NO commit |
+| `refactoring` | Code restructuring, cleanup, optimization | Baseline tests + refactor + re-verify |
+| `general` | Other tasks that don't fit categories | Minimal actions, document decisions |
+
+### Type Selection Guide
+
+| If the task... | Use Type |
+|----------------|----------|
+| Creates/modifies source code (.py, .ts, .tsx, .js) | `code` |
+| Creates/modifies tests in tests/ directory | `testing` |
+| Creates/modifies .md, .txt, .rst files | `documentation` |
+| Creates/modifies .json, .yaml, .env, .toml configs | `configuration` |
+| Requires investigation before implementation | `research` |
+| Improves existing code without new features | `refactoring` |
+| Doesn't fit any category | `general` |
 
 ## Important Notes
 

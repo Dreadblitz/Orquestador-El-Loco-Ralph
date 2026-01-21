@@ -2,6 +2,7 @@
   "id": "{{TASK_ID}}",
   "title": "{{TASK_TITLE}}",
   "description": "{{TASK_DESCRIPTION}}",
+  "type": "{{TASK_TYPE}}",
   "phase": "{{PHASE_ID}}",
   "priority": 1,
   "file_paths": [

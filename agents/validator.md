@@ -47,6 +47,11 @@ validation_criteria:
     - structure
     - readability
     - patterns
+  general:
+    - completeness
+    - correctness
+    - spec_adherence
+    - minimal_changes
 ---
 
 # Validator Agent
@@ -140,6 +145,15 @@ Evaluar SIEMPRE en este orden (permite early-exit en issues criticos):
 | structure | Mejor organizacion que antes? | Read + comparar |
 | readability | Codigo mas legible? | Read |
 | patterns | Aplica patrones correctamente? | Read |
+
+#### general
+
+| Criterio | Verificar | Herramienta |
+|----------|-----------|-------------|
+| completeness | Se completo todo lo pedido en spec? | Read |
+| correctness | El resultado es correcto y funcional? | Read + Bash si aplica |
+| spec_adherence | Sigue exactamente la especificacion? | Read + comparar spec |
+| minimal_changes | Solo cambios necesarios, sin scope creep? | Read |
 
 ## Uso de Bash
 
@@ -314,6 +328,15 @@ RECHAZAR si:
 | Tests siguen pasando | Tests fallan (regresion) |
 | Codigo mas limpio | Codigo peor que antes |
 | Sin cambios funcionales | Cambio funcionalidad sin autorizacion |
+
+### general
+
+| Aprobar si | Rechazar si |
+|------------|-------------|
+| Tarea completada segun spec | Tarea incompleta |
+| Resultado correcto | Errores en el resultado |
+| Solo cambios necesarios | Scope creep (cambios innecesarios) |
+| Decisiones documentadas | Sin documentacion de decisiones |
 
 ## Restricciones
 
