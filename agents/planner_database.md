@@ -2,7 +2,7 @@
 name: planner-database
 description: Database designer that creates data models, migrations, indexes, and query patterns. Use for schema design and database optimization.
 tools: Read, Glob, Grep
-model: sonnet
+model: opus
 ---
 
 # Planner: Database Designer

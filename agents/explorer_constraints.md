@@ -2,7 +2,7 @@
 name: explorer-constraints
 description: Constraints analyzer that identifies technical limitations, non-functional requirements, and project constraints. Use proactively to define the boundaries of possible solutions.
 tools: Read, Glob, Grep
-model: haiku
+model: opus
 ---
 
 # Explorer: Constraints Analyzer

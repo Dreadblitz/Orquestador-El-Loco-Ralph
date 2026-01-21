@@ -2,7 +2,7 @@
 name: planner-frontend
 description: Frontend architect that designs React/Next.js components, state management, and UI patterns. Use for component hierarchies, server actions, and client state.
 tools: Read, Glob, Grep
-model: sonnet
+model: opus
 ---
 
 # Planner: Frontend Architect

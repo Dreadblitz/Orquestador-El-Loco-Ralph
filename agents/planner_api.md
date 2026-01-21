@@ -2,7 +2,7 @@
 name: planner-api
 description: API contract designer that defines endpoints, schemas, validations, and error codes. Use to create complete REST/GraphQL API specifications.
 tools: Read, Glob, Grep
-model: sonnet
+model: opus
 ---
 
 # Planner: API Contract Designer

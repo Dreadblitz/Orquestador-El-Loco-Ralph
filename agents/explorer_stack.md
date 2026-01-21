@@ -2,7 +2,7 @@
 name: explorer-stack
 description: Technology stack analyzer that documents languages, frameworks, dependencies, and development tools. Use proactively ONLY when classification.json indicates has_code=true.
 tools: Read, Glob, Grep
-model: haiku
+model: opus
 ---
 
 # Explorer: Stack Analyzer

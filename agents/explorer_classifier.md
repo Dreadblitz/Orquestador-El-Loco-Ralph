@@ -2,7 +2,7 @@
 name: explorer-classifier
 description: Fast context classifier that determines exploration and planning strategy. Use proactively as the FIRST step to classify project context, task type, and determine which explorers and planners to run.
 tools: Read, Glob, Grep
-model: haiku
+model: opus
 ---
 
 # Explorer: Classifier

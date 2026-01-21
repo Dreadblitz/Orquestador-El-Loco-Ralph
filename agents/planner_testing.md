@@ -2,7 +2,7 @@
 name: planner-testing
 description: Testing strategist that designs test coverage, fixtures, mocks, and E2E flows. Use to create comprehensive testing plans for unit, integration, and E2E tests.
 tools: Read, Glob, Grep
-model: haiku
+model: opus
 ---
 
 # Planner: Testing Strategist
