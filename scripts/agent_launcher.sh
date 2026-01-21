@@ -227,7 +227,7 @@ launch_final_reviewer() {
     local spec_path=$2
 
     local agent_prompt="${SCRIPT_DIR}/../agents/${review_type}_reviewer.md"
-    local output_file="${spec_path}/reports/${review_type}_review.md"
+    local output_file="${spec_path}/reports/${review_type}_review.json"
 
     ensure_dir "$(dirname "$output_file")"
 
@@ -252,8 +252,11 @@ launch_final_reviewer() {
 Revisar TODO el proyecto desde la perspectiva de **${review_type}**.
 Consulta los archivos de contexto para entender qué se implementó.
 
-### Output
-Genera reporte en: ${output_file}
+### Output Requerido
+Genera reporte JSON estructurado en: ${output_file}
+
+IMPORTANTE: El output DEBE ser un JSON válido con la estructura definida en tu prompt.
+NO generar Markdown, solo JSON.
 "
 
     launch_agent "${review_type}_reviewer" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"

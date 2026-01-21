@@ -229,9 +229,93 @@ execute_final_review() {
 
 generate_final_report() {
     local report_file="${SPEC_PATH}/reports/FINAL_REPORT.md"
+    local json_report="${SPEC_PATH}/reports/FINAL_REPORT.json"
 
+    # Extraer métricas de los JSON reviews
+    local security_json="${SPEC_PATH}/reports/security_review.json"
+    local tests_json="${SPEC_PATH}/reports/tests_review.json"
+    local architecture_json="${SPEC_PATH}/reports/architecture_review.json"
+
+    # Scores individuales (default 0 si no existe)
+    local sec_score=$(jq -r '.score_average // 0' "$security_json" 2>/dev/null || echo "0")
+    local tests_score=$(jq -r '.score_average // 0' "$tests_json" 2>/dev/null || echo "0")
+    local arch_score=$(jq -r '.score_average // 0' "$architecture_json" 2>/dev/null || echo "0")
+
+    # Status individuales
+    local sec_status=$(jq -r '.status // "unknown"' "$security_json" 2>/dev/null || echo "unknown")
+    local tests_status=$(jq -r '.status // "unknown"' "$tests_json" 2>/dev/null || echo "unknown")
+    local arch_status=$(jq -r '.status // "unknown"' "$architecture_json" 2>/dev/null || echo "unknown")
+
+    # Contar issues por severidad
+    local critical_count=0
+    local high_count=0
+    for json_file in "$security_json" "$tests_json" "$architecture_json"; do
+        if [[ -f "$json_file" ]]; then
+            critical_count=$((critical_count + $(jq '[.issues[] | select(.severity == "critical")] | length' "$json_file" 2>/dev/null || echo 0)))
+            high_count=$((high_count + $(jq '[.issues[] | select(.severity == "high")] | length' "$json_file" 2>/dev/null || echo 0)))
+        fi
+    done
+
+    # Calcular score promedio global
+    local total_score=$(echo "scale=1; ($sec_score + $tests_score + $arch_score) / 3" | bc 2>/dev/null || echo "0")
+
+    # Determinar estado final
+    local final_status="passed"
+    if [[ $critical_count -gt 0 ]] || [[ $high_count -gt 0 ]]; then
+        final_status="failed"
+    fi
+
+    # Métricas de ejecución
+    local total_tasks=$(jq '[.waves[].tasks[]] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+    local completed_tasks=$(jq '[.waves[].tasks[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+    local total_waves=$(jq '.waves | length' "$PRD_FILE" 2>/dev/null || echo "0")
+    local completed_waves=$(jq '[.waves[] | select(.status == "completed")] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+
+    # Generar JSON consolidado
+    cat > "$json_report" << JSONEOF
+{
+  "report_type": "final",
+  "status": "$final_status",
+  "generated_at": "$(date -Iseconds)",
+  "execution_metrics": {
+    "total_waves": $total_waves,
+    "completed_waves": $completed_waves,
+    "total_tasks": $total_tasks,
+    "completed_tasks": $completed_tasks,
+    "completion_rate": $(echo "scale=0; ($completed_tasks * 100) / ($total_tasks + 1)" | bc 2>/dev/null || echo "0")
+  },
+  "review_scores": {
+    "security": $sec_score,
+    "tests": $tests_score,
+    "architecture": $arch_score,
+    "average": $total_score
+  },
+  "review_status": {
+    "security": "$sec_status",
+    "tests": "$tests_status",
+    "architecture": "$arch_status"
+  },
+  "issues_summary": {
+    "critical": $critical_count,
+    "high": $high_count
+  },
+  "prd_file": "$PRD_FILE",
+  "spec_path": "$SPEC_PATH"
+}
+JSONEOF
+
+    # Generar Markdown report
     cat > "$report_file" << EOF
 # Reporte Final - Ralph Orchestrator
+
+## Estado Global
+
+| Métrica | Valor |
+|---------|-------|
+| **Estado** | \`$final_status\` |
+| **Score Promedio** | $total_score / 10 |
+| **Issues Críticos** | $critical_count |
+| **Issues High** | $high_count |
 
 ## Resumen de Ejecución
 
@@ -240,33 +324,78 @@ generate_final_report() {
 | Fecha | $(date '+%Y-%m-%d %H:%M:%S') |
 | PRD | ${PRD_FILE} |
 | Spec Path | ${SPEC_PATH} |
+| Waves | $completed_waves / $total_waves completadas |
+| Tasks | $completed_tasks / $total_tasks completadas |
 
 ## Waves Ejecutadas
 
-$(jq -r '.waves[] | "| Wave \(.id) | \(.name) | \(.status) |"' "$PRD_FILE")
+| Wave | Nombre | Estado |
+|------|--------|--------|
+$(jq -r '.waves[] | "| \(.id) | \(.name) | \(.status) |"' "$PRD_FILE" 2>/dev/null)
 
-## Revisiones Finales
+## Scores de Revisión Final
 
-### Seguridad
-$(cat "${SPEC_PATH}/reports/security_review.md" 2>/dev/null || echo "No disponible")
+| Revisor | Score | Estado |
+|---------|-------|--------|
+| Security | $sec_score / 10 | $sec_status |
+| Tests | $tests_score / 10 | $tests_status |
+| Architecture | $arch_score / 10 | $arch_status |
+| **Promedio** | **$total_score / 10** | **$final_status** |
 
-### Tests
-$(cat "${SPEC_PATH}/reports/tests_review.md" 2>/dev/null || echo "No disponible")
+## Detalles por Revisor
 
-### Arquitectura
-$(cat "${SPEC_PATH}/reports/architecture_review.md" 2>/dev/null || echo "No disponible")
+### Security Review
+$(if [[ -f "$security_json" ]]; then
+    echo "\`\`\`"
+    echo "Status: $(jq -r '.status' "$security_json")"
+    echo "Summary: $(jq -r '.summary' "$security_json")"
+    echo ""
+    echo "Issues críticos:"
+    jq -r '.issues[] | select(.severity == "critical" or .severity == "high") | "- [\(.severity)] \(.description)"' "$security_json" 2>/dev/null || echo "Ninguno"
+    echo "\`\`\`"
+else
+    echo "No disponible"
+fi)
+
+### Tests Review
+$(if [[ -f "$tests_json" ]]; then
+    echo "\`\`\`"
+    echo "Status: $(jq -r '.status' "$tests_json")"
+    echo "Summary: $(jq -r '.summary' "$tests_json")"
+    echo "Coverage: $(jq -r '.metrics.line_coverage // "N/A"' "$tests_json")%"
+    echo ""
+    echo "Issues críticos:"
+    jq -r '.issues[] | select(.severity == "critical" or .severity == "high") | "- [\(.severity)] \(.description)"' "$tests_json" 2>/dev/null || echo "Ninguno"
+    echo "\`\`\`"
+else
+    echo "No disponible"
+fi)
+
+### Architecture Review
+$(if [[ -f "$architecture_json" ]]; then
+    echo "\`\`\`"
+    echo "Status: $(jq -r '.status' "$architecture_json")"
+    echo "Summary: $(jq -r '.summary' "$architecture_json")"
+    echo ""
+    echo "Issues críticos:"
+    jq -r '.issues[] | select(.severity == "critical" or .severity == "high") | "- [\(.severity)] \(.description)"' "$architecture_json" 2>/dev/null || echo "Ninguno"
+    echo "\`\`\`"
+else
+    echo "No disponible"
+fi)
 
 ## Log de Progreso
 
 \`\`\`
-$(cat "${SPEC_PATH}/progress.txt" 2>/dev/null || echo "No disponible")
+$(tail -50 "${SPEC_PATH}/progress.txt" 2>/dev/null || echo "No disponible")
 \`\`\`
 
 ---
-Generado por Ralph Orchestrator
+Generado por Ralph Orchestrator v1.0.0
 EOF
 
     log_info "Reporte final generado: $report_file"
+    log_info "Reporte JSON generado: $json_report"
 }
 
 #───────────────────────────────────────────────────────────────────────────────
@@ -405,6 +534,7 @@ main() {
     # Verificar dependencias
     check_claude_installed || exit 1
     check_jq_installed || exit 1
+    check_bc_installed || log_warn "Continuando sin bc..."
 
     # Crear directorios necesarios
     ensure_dir "${SPEC_PATH}/communication"

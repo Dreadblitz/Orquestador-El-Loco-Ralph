@@ -151,6 +151,15 @@ check_jq_installed() {
     return 0
 }
 
+check_bc_installed() {
+    if ! command -v bc &> /dev/null; then
+        log_warn "bc no está instalado (cálculos de scores pueden fallar)"
+        log_warn "Instalar con: sudo apt install bc"
+        return 1
+    fi
+    return 0
+}
+
 validate_prd() {
     local prd_file=$1
 
@@ -268,7 +277,7 @@ export -f log_info log_warn log_error log_debug log_phase log_wave
 export -f generate_execution_id generate_task_id
 export -f ensure_dir write_json read_json_field update_json_field append_to_file
 export -f wait_for_processes kill_processes
-export -f check_claude_installed check_jq_installed validate_prd
+export -f check_claude_installed check_jq_installed check_bc_installed validate_prd
 export -f get_wave_status set_wave_status get_task_status set_task_passed
 export -f check_wave_dependencies all_waves_completed
 export -f log_progress
