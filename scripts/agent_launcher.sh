@@ -166,55 +166,60 @@ Contexto disponible en: ${spec_path}/context/
     launch_agent "planner_${planner_type}" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
 }
 
-launch_coder_agent() {
+launch_executor_agent() {
     local task_id=$1
     local spec_path=$2
     local task_spec=$3       # JSON con spec de la tarea
-    local feedback=$4        # Feedback de iteración anterior (opcional)
+    local task_type=$4       # Tipo de tarea (code, documentation, etc.)
+    local feedback=$5        # Feedback de iteración anterior (opcional)
 
-    local agent_prompt="${SCRIPT_DIR}/../agents/coder.md"
-    local output_file="${spec_path}/communication/coder_${task_id}_output.json"
+    local agent_prompt="${SCRIPT_DIR}/../agents/executor.md"
+    local output_file="${spec_path}/communication/executor_${task_id}_output.json"
 
     ensure_dir "$(dirname "$output_file")"
 
     local extra_context="
-## Tarea a Implementar
+## Tarea a Ejecutar
 Task ID: ${task_id}
+Task Type: ${task_type}
 Spec: ${task_spec}
 
 ## Feedback Previo
 ${feedback:-Ninguno (primera iteración)}
 
 ## Instrucciones Especiales
-- Implementa SOLO esta tarea
-- Haz commit atómico
+- Ejecuta SOLO esta tarea
+- Adapta tu comportamiento según el tipo: ${task_type}
 - Reporta resultado en: ${output_file}
 "
 
-    launch_agent "coder" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
+    launch_agent "executor" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
 }
 
-launch_reviewer_agent() {
+launch_validator_agent() {
     local task_id=$1
     local spec_path=$2
-    local coder_output=$3    # Output del coder
+    local executor_output=$3  # Output del executor
+    local task_type=$4        # Tipo de tarea para criterios de validación
 
-    local agent_prompt="${SCRIPT_DIR}/../agents/reviewer.md"
-    local output_file="${spec_path}/communication/reviewer_${task_id}_feedback.json"
+    local agent_prompt="${SCRIPT_DIR}/../agents/validator.md"
+    local output_file="${spec_path}/communication/validator_${task_id}_feedback.json"
 
     ensure_dir "$(dirname "$output_file")"
 
     local extra_context="
-## Código a Revisar
+## Resultado a Validar
 Task ID: ${task_id}
-Coder output: ${coder_output}
+Task Type: ${task_type}
+Executor output: ${executor_output}
 
 ## Tu Rol
-Revisar el código y generar feedback estructurado
+Validar el resultado según criterios de tipo: ${task_type}
+Generar feedback estructurado
 Output: ${output_file}
 "
 
-    launch_agent "reviewer" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
+    launch_agent "validator" "$agent_prompt" "$spec_path" "$output_file" "$extra_context"
 }
 
 launch_final_reviewer() {
@@ -304,15 +309,16 @@ show_help() {
     echo "Usage: agent_launcher.sh <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  explorer <type> <spec_path> <project_path>  - Launch explorer agent"
-    echo "  planner <type> <spec_path>                  - Launch planner agent"
-    echo "  coder <task_id> <spec_path> <task_spec>     - Launch coder agent"
-    echo "  reviewer <task_id> <spec_path> <output>     - Launch reviewer agent"
-    echo "  final <type> <spec_path>                    - Launch final reviewer"
-    echo "  browser <spec_path> <test_cases>            - Launch browser tester"
+    echo "  explorer <type> <spec_path> <project_path>           - Launch explorer agent"
+    echo "  planner <type> <spec_path>                           - Launch planner agent"
+    echo "  executor <task_id> <spec_path> <task_spec> <type>    - Launch executor agent"
+    echo "  validator <task_id> <spec_path> <output> <type>      - Launch validator agent"
+    echo "  final <type> <spec_path>                             - Launch final reviewer"
+    echo "  browser <spec_path> <test_cases>                     - Launch browser tester"
     echo ""
     echo "Explorer types: classifier, task, domain, constraints, codebase, stack"
     echo "Planner types: architecture, api, database, frontend, testing, consolidator"
+    echo "Task types: code, documentation, configuration, research, testing, refactoring, general"
     echo "Final review types: security, tests, architecture"
 }
 
@@ -325,11 +331,11 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         planner)
             launch_planner_agent "$2" "$3"
             ;;
-        coder)
-            launch_coder_agent "$2" "$3" "$4" "$5"
+        executor)
+            launch_executor_agent "$2" "$3" "$4" "$5" "$6"
             ;;
-        reviewer)
-            launch_reviewer_agent "$2" "$3" "$4"
+        validator)
+            launch_validator_agent "$2" "$3" "$4" "$5"
             ;;
         final)
             launch_final_reviewer "$2" "$3"

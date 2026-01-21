@@ -111,6 +111,7 @@ execute_task() {
     # Obtener spec de la tarea
     local task_spec=$(jq -r ".waves[].tasks[] | select(.id == \"$task_id\")" "$PRD_FILE")
     local task_title=$(echo "$task_spec" | jq -r '.title // .description // "Unknown"')
+    local task_type=$(echo "$task_spec" | jq -r '.type // "code"')
 
     log_progress "$SPEC_PATH" "Iniciando task $task_id: $task_title"
 
@@ -120,56 +121,56 @@ execute_task() {
 
         # Obtener feedback previo si existe
         local feedback=""
-        local feedback_file="${SPEC_PATH}/communication/reviewer_${task_id}_feedback.json"
+        local feedback_file="${SPEC_PATH}/communication/validator_${task_id}_feedback.json"
         if [[ -f "$feedback_file" ]]; then
             feedback=$(cat "$feedback_file")
         fi
 
         #───────────────────────────────────────────────────────────────────────
-        # LANZAR CODER AGENT
+        # LANZAR EXECUTOR AGENT
         #───────────────────────────────────────────────────────────────────────
-        log_info "Lanzando Coder Agent para $task_id..."
+        log_info "Lanzando Executor Agent para $task_id (type: $task_type)..."
 
-        "${SCRIPT_DIR}/agent_launcher.sh" coder "$task_id" "$SPEC_PATH" "$task_spec" "$feedback"
-        local coder_exit=$?
+        "${SCRIPT_DIR}/agent_launcher.sh" executor "$task_id" "$SPEC_PATH" "$task_spec" "$task_type" "$feedback"
+        local executor_exit=$?
 
-        if [[ $coder_exit -ne 0 ]]; then
-            log_error "Coder falló para task $task_id"
-            log_progress "$SPEC_PATH" "Task $task_id: Coder falló (iter $iteration)"
+        if [[ $executor_exit -ne 0 ]]; then
+            log_error "Executor falló para task $task_id"
+            log_progress "$SPEC_PATH" "Task $task_id: Executor falló (iter $iteration)"
             continue
         fi
 
         #───────────────────────────────────────────────────────────────────────
-        # LANZAR REVIEWER AGENT
+        # LANZAR VALIDATOR AGENT
         #───────────────────────────────────────────────────────────────────────
-        local coder_output="${SPEC_PATH}/communication/coder_${task_id}_output.json"
+        local executor_output="${SPEC_PATH}/communication/executor_${task_id}_output.json"
 
-        log_info "Lanzando Reviewer Agent para $task_id..."
+        log_info "Lanzando Validator Agent para $task_id (type: $task_type)..."
 
-        "${SCRIPT_DIR}/agent_launcher.sh" reviewer "$task_id" "$SPEC_PATH" "$coder_output"
-        local reviewer_exit=$?
+        "${SCRIPT_DIR}/agent_launcher.sh" validator "$task_id" "$SPEC_PATH" "$executor_output" "$task_type"
+        local validator_exit=$?
 
-        if [[ $reviewer_exit -ne 0 ]]; then
-            log_error "Reviewer falló para task $task_id"
+        if [[ $validator_exit -ne 0 ]]; then
+            log_error "Validator falló para task $task_id"
             continue
         fi
 
         #───────────────────────────────────────────────────────────────────────
         # EVALUAR FEEDBACK
         #───────────────────────────────────────────────────────────────────────
-        local feedback_file="${SPEC_PATH}/communication/reviewer_${task_id}_feedback.json"
+        local validator_feedback="${SPEC_PATH}/communication/validator_${task_id}_feedback.json"
 
-        if [[ -f "$feedback_file" ]]; then
-            local approved=$(jq -r '.approved // false' "$feedback_file" 2>/dev/null || echo "false")
+        if [[ -f "$validator_feedback" ]]; then
+            local approved=$(jq -r '.approved // false' "$validator_feedback" 2>/dev/null || echo "false")
 
             if [[ "$approved" == "true" ]]; then
-                log_info "Task $task_id APROBADA por Reviewer"
+                log_info "Task $task_id APROBADA por Validator"
                 set_task_passed "$PRD_FILE" "$task_id" true
                 log_progress "$SPEC_PATH" "Task $task_id: COMPLETADA (iter $iteration)"
                 return 0
             else
                 log_warn "Task $task_id requiere correcciones"
-                local issues=$(jq -r '.issues | length' "$feedback_file" 2>/dev/null || echo "0")
+                local issues=$(jq -r '.issues | length' "$validator_feedback" 2>/dev/null || echo "0")
                 log_warn "Issues encontrados: $issues"
             fi
         else
